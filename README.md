@@ -19,155 +19,102 @@ Save the data to the file
 
 # CODE
 
+# PROGRAM FOR TITANIC
+
 NAME:S.Prema Latha
 
 REG NO:212222230112
 
 ```
-from sklearn.datasets import load_boston
-boston_data=load_boston()
 import pandas as pd
-boston = pd.DataFrame(boston_data.data, columns=boston_data.feature_names)
-boston['MEDV'] = boston_data.target
-dummies = pd.get_dummies(boston.RAD)
-boston = boston.drop(columns='RAD').merge(dummies,left_index=True,right_index=True)
-X = boston.drop(columns='MEDV')
-y = boston.MEDV
-boston.head(10)
-
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import KFold
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import cross_val_predict
-from sklearn.linear_model import LinearRegression
-from math import sqrt
-
-cv = KFold(n_splits=10, random_state=None, shuffle=False)
-classifier_pipeline = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=10))
-y_pred = cross_val_predict(classifier_pipeline, X, y, cv=cv)
-print("RMSE: " + str(round(sqrt(mean_squared_error(y,y_pred)),2)))
-print("R_squared: " + str(round(r2_score(y,y_pred),2)))
-
-boston.var()
-
-X = X.drop(columns = ['NOX','CHAS'])
-y_pred = cross_val_predict(classifier_pipeline, X, y, cv=cv)
-print("RMSE: " + str(round(sqrt(mean_squared_error(y,y_pred)),2)))
-print("R_squared: " + str(round(r2_score(y,y_pred),2)))
-
-# Filter Features by Correlation
-import seaborn as sn
-import matplotlib.pyplot as plt
-fig_dims = (12, 8)
-fig, ax = plt.subplots(figsize=fig_dims)
-sn.heatmap(boston.corr(), ax=ax)
-plt.show()
-abs(boston.corr()["MEDV"])
-abs(boston.corr()["MEDV"][abs(boston.corr()["MEDV"])>0.5].drop('MEDV')).index.tolist()
-vals = [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
-for val in vals:
-    features = abs(boston.corr()["MEDV"][abs(boston.corr()["MEDV"])>val].drop('MEDV')).index.tolist()
-    
-    X = boston.drop(columns='MEDV')
-    X=X[features]
-    
-    print(features)
-
-    y_pred = cross_val_predict(classifier_pipeline, X, y, cv=cv)
-    print("RMSE: " + str(round(sqrt(mean_squared_error(y,y_pred)),2)))
-    print("R_squared: " + str(round(r2_score(y,y_pred),2)))
-
-# Feature Selection Using a Wrapper
-
-boston = pd.DataFrame(boston_data.data, columns=boston_data.feature_names)
-boston['MEDV'] = boston_data.target
-boston['RAD'] = boston['RAD'].astype('category')
-dummies = pd.get_dummies(boston.RAD)
-boston = boston.drop(columns='RAD').merge(dummies,left_index=True,right_index=True)
-X = boston.drop(columns='MEDV')
-y = boston.MEDV
-
-from mlxtend.feature_selection import SequentialFeatureSelector as SFS
-
-sfs1 = SFS(classifier_pipeline, 
-           k_features=1, 
-           forward=False, 
-           scoring='neg_mean_squared_error',
-           cv=cv)
-
-X = boston.drop(columns='MEDV')
-sfs1.fit(X,y)
-sfs1.subsets_
-
-X = boston.drop(columns='MEDV')[['CRIM','RM','PTRATIO','LSTAT']]
-y = boston['MEDV']
-y_pred = cross_val_predict(classifier_pipeline, X, y, cv=cv)
-print("RMSE: " + str(round(sqrt(mean_squared_error(y,y_pred)),3)))
-print("R_squared: " + str(round(r2_score(y,y_pred),3)))
-
-boston[['CRIM','RM','PTRATIO','LSTAT','MEDV']].corr()
-
-boston['RM*LSTAT']=boston['RM']*boston['LSTAT']
-
-X = boston.drop(columns='MEDV')[['CRIM','RM','PTRATIO','LSTAT']]
-y = boston['MEDV']
-y_pred = cross_val_predict(classifier_pipeline, X, y, cv=cv)
-print("RMSE: " + str(round(sqrt(mean_squared_error(y,y_pred)),3)))
-print("R_squared: " + str(round(r2_score(y,y_pred),3)))
-
-sn.pairplot(boston[['CRIM','RM','PTRATIO','LSTAT','MEDV']])
-
-boston = boston.drop(boston[boston['MEDV']==boston['MEDV'].max()].index.tolist())
-
-X = boston.drop(columns='MEDV')[['CRIM','RM','PTRATIO','LSTAT','RM*LSTAT']]
-y = boston['MEDV']
-y_pred = cross_val_predict(classifier_pipeline, X, y, cv=cv)
-print("RMSE: " + str(round(sqrt(mean_squared_error(y,y_pred)),3)))
-print("R_squared: " + str(round(r2_score(y,y_pred),3)))
-
-boston['LSTAT_2']=boston['LSTAT']**2
-
-X = boston.drop(columns='MEDV')[['CRIM','RM','PTRATIO','LSTAT']]
-y_pred = cross_val_predict(classifier_pipeline, X, y, cv=cv)
-print("RMSE: " + str(round(sqrt(mean_squared_error(y,y_pred)),3)))
-print("R_squared: " + str(round(r2_score(y,y_pred),3)))
+import numpy as np
+df = pd.read_csv("titanic_dataset.csv")
+df
+df.isnull().sum()
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
+df.drop(['PassengerId', 'Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+le = LabelEncoder()
+df['Sex'] = le.fit_transform(df['Sex'])
+df['Embarked'] = le.fit_transform(df['Embarked'].astype(str))
+imputer = SimpleImputer(missing_values=np.nan, strategy='median')
+df[['Age']] = imputer.fit_transform(df[['Age']])
+print("Feature selection")
+X = df.iloc[:, :-1]
+y = df.iloc[:, -1]
+selector = SelectKBest(chi2, k=3)
+X_new = selector.fit_transform(X, y)
+print(X_new)
+df_new = pd.DataFrame(X_new, columns=['Pclass', 'Age', 'Fare'])
+df_new['Survived'] = y.values
+df_new.to_csv('titanic_transformed.csv', index=False)
+print(df_new)
 
 ```
 # OUPUT
 
-![image](https://user-images.githubusercontent.com/120620842/234179786-0f0a6f7f-767d-4b66-b580-c8f2f6dd87f2.png)
+![Screenshot 2023-05-09 105111](https://user-images.githubusercontent.com/120620842/237001569-dd3c9698-f73a-45f0-a95c-f29f437c56ae.png)
 
-![image](https://user-images.githubusercontent.com/120620842/234179861-9e88c1d0-aad7-49e4-93cf-c86d6bb8d663.png)
+![Screenshot 2023-05-09 105253](https://user-images.githubusercontent.com/120620842/237001613-db2321fa-c91d-425f-9371-324c6e8e5bee.png)
 
-![image](https://user-images.githubusercontent.com/120620842/234179942-a6ec721f-058f-43db-8e3b-e39bc0297701.png)
+![Screenshot 2023-05-09 105240](https://user-images.githubusercontent.com/120620842/237001647-29e9686b-30aa-405d-8729-2921882faf5d.png)
 
-![image](https://user-images.githubusercontent.com/120620842/234179985-e28623d6-9ede-46cd-a6ff-7188ca785503.png)
+# PROGRAM FOR CARPRICE
 
-![image](https://user-images.githubusercontent.com/120620842/234180117-3996796f-7a2a-4ff2-a953-e04546f64600.png)
+```
 
-![image](https://user-images.githubusercontent.com/120620842/234180255-e4de13d0-6e9d-4eea-9884-a823f3d513ca.png)
 
-![image](https://user-images.githubusercontent.com/120620842/234180319-51866abd-8dff-4c95-b8d1-adf23d29e6b0.png)
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+df = pd.read_csv("CarPrice.csv")
+df
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.ensemble import ExtraTreesRegressor
+df = df.drop(['car_ID', 'CarName'], axis=1)
+le = LabelEncoder()
+df['fueltype'] = le.fit_transform(df['fueltype'])
+df['aspiration'] = le.fit_transform(df['aspiration'])
+df['doornumber'] = le.fit_transform(df['doornumber'])
+df['carbody'] = le.fit_transform(df['carbody'])
+df['drivewheel'] = le.fit_transform(df['drivewheel'])
+df['enginelocation'] = le.fit_transform(df['enginelocation'])
+df['enginetype'] = le.fit_transform(df['enginetype'])
+df['cylindernumber'] = le.fit_transform(df['cylindernumber'])
+df['fuelsystem'] = le.fit_transform(df['fuelsystem'])
+X = df.iloc[:, :-1]
+y = df.iloc[:, -1]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,
+random_state=1)
+print("Univariate Selection")
+selector = SelectKBest(score_func=f_regression, k=10)
+X_train_new = selector.fit_transform(X_train, y_train)
+mask = selector.get_support()
+selected_features = X_train.columns[mask]
+model = ExtraTreesRegressor()
+model.fit(X_train, y_train)
+importance = model.feature_importances_
+indices = np.argsort(importance)[::-1]
+selected_features = X_train.columns[indices][:10]
+df_new = pd.concat([X_train[selected_features], y_train], axis=1)
+df_new.to_csv('CarPrice_new.csv', index=False)
+print(df_new)
 
-![image](https://user-images.githubusercontent.com/120620842/234180389-a9900ec2-ed8d-4423-be17-ea57376b8645.png)
+```
 
-![Screenshot 2023-04-25 104423](https://user-images.githubusercontent.com/120620842/234180534-1cbd3ecb-97d7-4f87-a769-0e930c7bf408.png)
+# OUPUT
 
-![image](https://user-images.githubusercontent.com/120620842/234180622-679bb9f5-11b6-42de-9578-7a31ffbdbec0.png)
+![Screenshot 2023-05-09 105744](https://user-images.githubusercontent.com/120620842/237002373-a284d7c8-974d-4761-a0cc-fd331b3f33ff.png)
 
-![image](https://user-images.githubusercontent.com/120620842/234180691-fa057211-7d34-4696-ae82-5901b1196c90.png)
+![Screenshot 2023-05-09 105830](https://user-images.githubusercontent.com/120620842/237002397-840e60b5-29c8-45c4-a26e-38de59e362c6.png)
 
-![image](https://user-images.githubusercontent.com/120620842/234180742-8df9236e-9e49-4172-a071-079a19458a0f.png)
+![Screenshot 2023-05-09 105841](https://user-images.githubusercontent.com/120620842/237002434-5e848786-c5c9-4bcd-b6b9-5d95e0b5fd85.png)
 
-![image](https://user-images.githubusercontent.com/120620842/234180821-751ca2bf-054f-49f0-8383-0d17f9e32805.png)
-
-![image](https://user-images.githubusercontent.com/120620842/234180902-0b74fba9-6445-42fc-9ea0-a771c780e466.png)
-
-![image](https://user-images.githubusercontent.com/120620842/234181176-ad355ada-6b3d-4271-95ee-7dfc77dc69c5.png)
-
-![image](https://user-images.githubusercontent.com/120620842/234181252-9714152d-03ad-4419-8ea9-3aacfbc785dd.png)
+![Screenshot 2023-05-09 105849](https://user-images.githubusercontent.com/120620842/237002462-b631ef2c-6a59-4852-8eb7-6b63ab619929.png)
 
 # RESULT
 The various feature selection techniques has been performed on a dataset and saved the data to a file.
